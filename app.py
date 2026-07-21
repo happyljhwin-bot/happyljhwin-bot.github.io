@@ -41,6 +41,18 @@ if check_password():
 
     if menu == "1. 블로그 포스팅 (정보 수집기)":
         st.header("📝 1번 에이전트: 트렌드 정보 수집 및 블로그 작성")
+        
+        # 💡 [신규 추가된 부분] 플랫폼별 작성 지침 설정 창
+        with st.expander("⚙️ 플랫폼별 작성 지침 (가이드라인) 설정", expanded=True):
+            st.info("💡 네이버 블로그, 구글 블로그 등 타겟에 맞춰 아래 규칙을 자유롭게 수정하고 추가하세요.")
+            blog_guideline = st.text_area(
+                "📝 현재 적용된 작성 지침 (자유롭게 수정 가능):",
+                value="1. 말투: 이웃과 대화하듯 친근하고 공감하는 말투 (~했어요, ~랍니다, ~네요) 사용.\n2. 가독성: 모바일 화면을 고려하여 2~3문장마다 반드시 줄바꿈할 것.\n3. 구조: 시선을 끄는 제목 -> 공감 가는 서론 -> 구체적인 본론 -> 행동을 유도하는 결론(댓글/공감 유도) 순으로 작성.\n4. 꾸미기: 문단마다 내용에 어울리는 이모지를 적절히 배치할 것.\n5. 금지사항: AI가 쓴 것처럼 보이는 딱딱한 번역투('~에 대해 알아보겠습니다' 등) 절대 금지.",
+                height=180
+            )
+        
+        st.markdown("---")
+
         col1, col2 = st.columns([1, 2])
         
         with col1:
@@ -65,17 +77,18 @@ if check_password():
                     
                     # [단계 2] 제미나이(Gemini) AI로 블로그 글 자동 작성
                     genai.configure(api_key=GEMINI_API_KEY)
-                    # 기존 코드: model = genai.GenerativeModel('gemini-1.5-pro-latest')
-                    # 아래 코드로 변경해 주세요.
                     model = genai.GenerativeModel('models/gemini-3.5-flash')
 
-                    
+                    # 💡 [프롬프트 수정된 부분] 위에서 설정한 지침(blog_guideline)을 AI에게 전달
                     prompt = f"""
                     다음은 '{keyword}'에 대해 구글 검색에서 방금 수집한 최신 정보야:
                     {collected_info}
                     
-                    위 정보를 바탕으로 네이버나 블로그스팟에서 사람들이 클릭하고 싶게 만드는 매력적인 블로그 포스팅을 작성해 줘.
-                    인사말, 서론, 본론(구체적 정보), 결론 구조를 갖추고 가독성 좋게 이모지와 함께 작성해 줘.
+                    위 정보를 바탕으로 블로그 포스팅을 작성해 줘. 
+                    단, 아래의 [특별 작성 지침]을 무조건 엄격하게 지켜서 작성해야 해!
+                    
+                    [특별 작성 지침]
+                    {blog_guideline}
                     """
                     
                     result = model.generate_content(prompt)
@@ -89,4 +102,3 @@ if check_password():
                         st.error("🚨 제미나이 API 호출 한도 초과(429 에러): 결제 크레딧이 모두 소진되었습니다. AI Studio(https://ai.studio/projects)에서 결제 상태와 잔여 크레딧을 확인해 주세요.")
                     else:
                         st.error(f"오류가 발생했습니다: {error_msg}")
-
