@@ -65,7 +65,10 @@ if check_password():
                     
                     # [단계 2] 제미나이(Gemini) AI로 블로그 글 자동 작성
                     genai.configure(api_key=GEMINI_API_KEY)
-                    model = genai.GenerativeModel('gemini-1.5-flash') 
+                    # 기존 코드: model = genai.GenerativeModel('gemini-1.5-pro-latest')
+                    # 아래 코드로 변경해 주세요.
+                    model = genai.GenerativeModel('models/gemini-1.5-flash')
+
                     
                     prompt = f"""
                     다음은 '{keyword}'에 대해 구글 검색에서 방금 수집한 최신 정보야:
