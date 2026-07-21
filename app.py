@@ -67,7 +67,7 @@ if check_password():
                     genai.configure(api_key=GEMINI_API_KEY)
                     # 기존 코드: model = genai.GenerativeModel('gemini-1.5-pro-latest')
                     # 아래 코드로 변경해 주세요.
-                    model = genai.GenerativeModel('gemini-2.5-flash')
+                    model = genai.GenerativeModel('gemini-pro')
 
                     
                     prompt = f"""
