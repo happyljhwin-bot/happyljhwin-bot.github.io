@@ -67,7 +67,7 @@ if check_password():
                     genai.configure(api_key=GEMINI_API_KEY)
                     # 기존 코드: model = genai.GenerativeModel('gemini-1.5-pro-latest')
                     # 아래 코드로 변경해 주세요.
-                    model = genai.GenerativeModel('gemini-pro')
+                    model = genai.GenerativeModel('models/gemini-1.5-pro')
 
                     
                     prompt = f"""
@@ -90,25 +90,3 @@ if check_password():
                     else:
                         st.error(f"오류가 발생했습니다: {error_msg}")
 
-# --- 에러 진단 및 모델 스캔용 테스트 코드 ---
-st.divider()
-st.subheader("🛠️ 접속 가능한 AI 모델 스캔 중...")
-
-try:
-    available_models = []
-    # 내 API 키로 접근 가능한 모든 구글 AI 모델 조회
-    for m in genai.list_models():
-        # 글쓰기(generateContent) 기능이 지원되는 모델만 필터링
-        if 'generateContent' in m.supported_generation_methods:
-            available_models.append(m.name)
-    
-    if available_models:
-        st.success("✅ 통신 성공! 아래 리스트에 있는 이름을 정확히 복사해서 사용하세요.")
-        for model_name in available_models:
-            # 화면에 복사하기 쉽게 코드 블록으로 출력
-            st.code(model_name)
-    else:
-        st.warning("사용 가능한 모델이 조회되지 않습니다. API 키 상태를 확인해 주세요.")
-        
-except Exception as e:
-    st.error(f"구글 서버 통신 오류: {e}")
