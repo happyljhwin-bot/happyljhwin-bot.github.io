@@ -1,10 +1,221 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>나의 홈페이지</title>
-</head>
-<body>
-    <h1>안녕하세요! 깃허브 페이지 테스트 중입니다.</h1>
-</body>
-</html>
+import streamlit as st
+import google.generativeai as genai
+import requests
+
+# 1. 홈페이지 기본 설정
+st.set_page_config(page_title="나만의 콘텐츠 사령부", page_icon="🚀", layout="wide")
+
+# 2. 비밀 금고에서 암호와 API 키 불러오기
+ADMIN_PASSWORD = st.secrets["admin_password"]
+GEMINI_API_KEY = st.secrets["gemini_key"]
+SERPAPI_KEY = st.secrets["serpapi_key"]
+
+# 3. 비밀번호 확인 로직
+def check_password():
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+    if st.session_state["password_correct"]:
+        return True
+
+    st.title("🔒 사령부 접근 권한 확인")
+    pwd_attempt = st.text_input("비밀번호를 입력하세요:", type="password")
+    
+    if st.button("접속"):
+        if pwd_attempt == ADMIN_PASSWORD:
+            st.session_state["password_correct"] = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 틀렸습니다.")
+    return False
+
+# 4. 메인 사령부 화면
+if check_password():
+    # 💡 플랫폼별로 독립된 메뉴 버튼 구성
+    st.sidebar.title("🛠️ 자동화 채널 선택")
+    menu = st.sidebar.radio(
+        "작업할 플랫폼을 선택하세요:",
+        [
+            "📝 네이버 블로그 자동화", 
+            "🌐 구글 블로그(SEO) 자동화", 
+            "📸 인스타그램 카드뉴스", 
+            "🎬 유튜브 쇼츠 대본", 
+            "🎵 틱톡(TikTok) 대본"
+        ]
+    )
+
+    st.title("🚀 자동화 수익 파이프라인 대시보드")
+    st.markdown("---")
+
+    # 제미나이 AI 모델 설정 (3.5 flash)
+    genai.configure(api_key=GEMINI_API_KEY)
+    ai_model = genai.GenerativeModel('models/gemini-3.5-flash')
+
+    # ==========================================
+    # 1. 네이버 블로그 메뉴
+    # ==========================================
+    if menu == "📝 네이버 블로그 자동화":
+        st.header("📝 네이버 블로그 포스팅 에이전트")
+        
+        with st.expander("⚙️ [네이버 전용] 작성 지침 및 가이드라인 (개별 저장)", expanded=True):
+            naver_guideline = st.text_area(
+                "네이버 블로그 맞춤 규칙:",
+                value="1. 말투: 이웃과 친근하게 소통하는 대화체 (~해요, ~랍니다, ~네요) 사용.\n2. 구조: 호기심을 자극하는 제목 -> 따뜻한 공감 서론 -> 상세 정보 본론 -> 댓글/이웃추가 유도 결론.\n3. 가독성: 모바일 화면을 고려해 2~3줄마다 줄바꿈 필수.\n4. 꾸미기: 문단마다 어울리는 이모지(😊, ✨ 등) 적극 활용.\n5. 금지: 딱딱한 백과사전식 말투나 번역투 절대 금지.",
+                height=160,
+                key="naver_box"
+            )
+            
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            keyword = st.text_input("💡 네이버 포스팅 키워드 입력:", key="naver_kw")
+            run_btn = st.button("네이버 포스팅 생성", key="naver_btn")
+        with col2:
+            st.subheader("실시간 결과")
+            if run_btn and keyword:
+                try:
+                    st.info(f"🔍 '{keyword}' 최신 정보 수집 중...")
+                    search_res = requests.get(f"https://serpapi.com/search.json?q={keyword}&hl=ko&gl=kr&api_key={SERPAPI_KEY}").json()
+                    snippets = [item.get("snippet", "") for item in search_res.get("organic_results", [])]
+                    info_text = " ".join(snippets)
+                    
+                    st.success("✨ 네이버 맞춤형 글로 변환 중...")
+                    prompt = f"수집된 정보: {info_text}\n\n위 정보를 바탕으로 네이버 블로그 글을 작성해 줘.\n\n[네이버 작성 지침]\n{naver_guideline}"
+                    res = ai_model.generate_content(prompt)
+                    st.markdown(res.text)
+                except Exception as e:
+                    st.error(f"오류 발생: {e}")
+
+    # ==========================================
+    # 2. 구글 블로그 메뉴
+    # ==========================================
+    elif menu == "🌐 구글 블로그(SEO) 자동화":
+        st.header("🌐 구글 블로그(SEO 최적화) 에이전트")
+        
+        with st.expander("⚙️ [구글 전용] 작성 지침 및 가이드라인 (개별 저장)", expanded=True):
+            google_guideline = st.text_area(
+                "구글 블로그 맞춤 규칙:",
+                value="1. 말투: 전문적이고 신뢰감을 주는 객관적인 정보 전달형 (~다, ~습니다) 사용.\n2. 구조: H2, H3 소제목을 명확히 나누고, 본문 안에 핵심 키워드를 자연스럽게 자주 배치(SEO 최적화).\n3. 깊이: 겉핥기 식이 아닌, 원인과 결과, 구체적인 데이터나 팁을 포함하여 깊이 있게 작성.\n4. 결론: 요약 및 FAQ 형태로 깔끔하게 마무리.",
+                height=160,
+                key="google_box"
+            )
+            
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            keyword = st.text_input("💡 구글 SEO 키워드 입력:", key="google_kw")
+            run_btn = st.button("구글 포스팅 생성", key="google_btn")
+        with col2:
+            st.subheader("실시간 결과")
+            if run_btn and keyword:
+                try:
+                    st.info(f"🔍 '{keyword}' 글로벌/국내 최신 정보 수집 중...")
+                    search_res = requests.get(f"https://serpapi.com/search.json?q={keyword}&hl=ko&gl=kr&api_key={SERPAPI_KEY}").json()
+                    snippets = [item.get("snippet", "") for item in search_res.get("organic_results", [])]
+                    info_text = " ".join(snippets)
+                    
+                    st.success("✨ 구글 SEO 맞춤형 글로 변환 중...")
+                    prompt = f"수집된 정보: {info_text}\n\n위 정보를 바탕으로 구글 블로그(SEO) 글을 작성해 줘.\n\n[구글 작성 지침]\n{google_guideline}"
+                    res = ai_model.generate_content(prompt)
+                    st.markdown(res.text)
+                except Exception as e:
+                    st.error(f"오류 발생: {e}")
+
+    # ==========================================
+    # 3. 인스타그램 메뉴
+    # ==========================================
+    elif menu == "📸 인스타그램 카드뉴스":
+        st.header("📸 인스타그램 카드뉴스 기획 에이전트")
+        
+        with st.expander("⚙️ [인스타 전용] 작성 지침 및 가이드라인 (개별 저장)", expanded=True):
+            insta_guideline = st.text_area(
+                "인스타그램 맞춤 규칙:",
+                value="1. 형식: 카드뉴스 슬라이드별(1장~10장) 텍스트와 이미지 배경 묘사로 나누어 작성.\n2. 스타일: 첫 장은 무조건 스크롤을 멈추게 하는 훅(Hook) 문구 배치.\n3. 해시태그: 게시글 하단에 트렌디하고 도달률이 높은 해시태그 20개 자동 생성.",
+                height=160,
+                key="insta_box"
+            )
+            
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            keyword = st.text_input("💡 인스타 주제/키워드 입력:", key="insta_kw")
+            run_btn = st.button("인스타 콘텐츠 생성", key="insta_btn")
+        with col2:
+            st.subheader("실시간 결과")
+            if run_btn and keyword:
+                try:
+                    st.info(f"🔍 '{keyword}' 트렌드 수집 중...")
+                    search_res = requests.get(f"https://serpapi.com/search.json?q={keyword}&hl=ko&gl=kr&api_key={SERPAPI_KEY}").json()
+                    snippets = [item.get("snippet", "") for item in search_res.get("organic_results", [])]
+                    info_text = " ".join(snippets)
+                    
+                    st.success("✨ 카드뉴스 대본 기획 중...")
+                    prompt = f"수집된 정보: {info_text}\n\n위 정보를 바탕으로 인스타그램 카드뉴스 대본을 짜 줘.\n\n[인스타 작성 지침]\n{insta_guideline}"
+                    res = ai_model.generate_content(prompt)
+                    st.markdown(res.text)
+                except Exception as e:
+                    st.error(f"오류 발생: {e}")
+
+    # ==========================================
+    # 4. 유튜브 쇼츠 메뉴
+    # ==========================================
+    elif menu == "🎬 유튜브 쇼츠 대본":
+        st.header("🎬 유튜브 쇼츠 숏폼 대본 에이전트")
+        
+        with st.expander("⚙️ [유튜브 쇼츠 전용] 작성 지침 및 가이드라인 (개별 저장)", expanded=True):
+            shorts_guideline = st.text_area(
+                "유튜브 쇼츠 맞춤 규칙:",
+                value="1. 길이: 30초~50초 분량 (총 130단어 내외).\n2. 구조: 3초 안에 이탈을 막는 충격적인 도입부(오프닝 훅) -> 알짜배기 핵심 정보 -> 여운을 주는 반전이나 구독 유도 결론.\n3. 연출: 화면에 띄울 자막 문구와 효과음/BGM 연출 팁을 괄호()로 함께 표기.",
+                height=160,
+                key="shorts_box"
+            )
+            
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            keyword = st.text_input("💡 쇼츠 영상 주제 입력:", key="shorts_kw")
+            run_btn = st.button("쇼츠 대본 생성", key="shorts_btn")
+        with col2:
+            st.subheader("실시간 결과")
+            if run_btn and keyword:
+                try:
+                    st.info(f"🔍 '{keyword}' 핫토픽 수집 중...")
+                    search_res = requests.get(f"https://serpapi.com/search.json?q={keyword}&hl=ko&gl=kr&api_key={SERPAPI_KEY}").json()
+                    snippets = [item.get("snippet", "") for item in search_res.get("organic_results", [])]
+                    info_text = " ".join(snippets)
+                    
+                    st.success("✨ 숏폼 대본 작성 중...")
+                    prompt = f"수집된 정보: {info_text}\n\n위 정보를 바탕으로 유튜브 쇼츠 대본을 작성해 줘.\n\n[쇼츠 작성 지침]\n{shorts_guideline}"
+                    res = ai_model.generate_content(prompt)
+                    st.markdown(res.text)
+                except Exception as e:
+                    st.error(f"오류 발생: {e}")
+
+    # ==========================================
+    # 5. 틱톡 메뉴
+    # ==========================================
+    elif menu == "🎵 틱톡(TikTok) 대본":
+        st.header("🎵 틱톡 트렌드 숏폼 에이전트")
+        
+        with st.expander("⚙️ [틱톡 전용] 작성 지침 및 가이드라인 (개별 저장)", expanded=True):
+            tiktok_guideline = st.text_area(
+                "틱톡 맞춤 규칙:",
+                value="1. 톤앤매너: MZ세대 유행어와 트렌디한 밈을 살짝 섞은 매우 빠르고 재치 있는 구어체.\n2. 훅: 첫 문장에서 무조건 시선을 강탈하는 질문이나 반전 멘트 사용.\n3. 참여: 댓글 창을 유도하는 짓궂거나 위트 있는 질문으로 마무리.",
+                height=160,
+                key="tiktok_box"
+            )
+            
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            keyword = st.text_input("💡 틱톡 콘텐츠 주제 입력:", key="tiktok_kw")
+            run_btn = st.button("틱톡 대본 생성", key="tiktok_btn")
+        with col2:
+            st.subheader("실시간 결과")
+            if run_btn and keyword:
+                try:
+                    st.info(f"🔍 '{keyword}' 트렌드 수집 중...")
+                    search_res = requests.get(f"https://serpapi.com/search.json?q={keyword}&hl=ko&gl=kr&api_key={SERPAPI_KEY}").json()
+                    snippets = [item.get("snippet", "") for item in search_res.get("organic_results", [])]
+                    info_text = " ".join(snippets)
+                    
+                    st.success("✨ 틱톡 맞춤 대본 작성 중...")
+                    prompt = f"수집된 정보: {info_text}\n\n위 정보를 바탕으로 틱톡 숏폼 대본을 작성해 줘.\n\n[틱톡 작성 지침]\n{tiktok_guideline}"
+                    res = ai_model.generate_content(prompt)
+                    st.markdown(res.text)
+                except Exception as e:
+                    st.error(f"오류 발생: {e}")
